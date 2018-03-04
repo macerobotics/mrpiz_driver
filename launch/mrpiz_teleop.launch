@@ -1,0 +1,17 @@
+<launch>
+
+    <arg name="mrpiz_name" default="mrpiz_robot_0"/>
+    <arg name="gui" default="False" />
+    <param name="use_gui" value="False"/>
+
+
+    <param name="robot_description" textfile="$(find mrpiz_package)/urdf/mrpiz.urdf"/>
+    
+    <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" />
+    
+    <node name="robot_state_publisher" pkg="robot_state_publisher" type="state_publisher">
+        <param name="tf_prefix" value="$(arg mrpiz_name)" />
+    </node>
+    <node name="rviz" pkg="rviz" type="rviz" required="true" />
+
+</launch>
