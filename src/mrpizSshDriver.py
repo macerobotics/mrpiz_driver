@@ -6,7 +6,7 @@
 import paramiko
 
 # definition des informations :
-hostname = '192.168.42.2' # IP du robot MRPiZ
+#hostname = '192.168.42.2' # IP du robot MRPiZ
 password = 'raspberry'
 username = 'pi'
 port = 22
@@ -14,11 +14,11 @@ port = 22
 ssh = paramiko.SSHClient()
 
 # connexion SSH au robot MRPiZ
-def connexionToMRPiZ():  
+def connexionToMRPiZ(ip_adr):  
   ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
   ssh.load_system_host_keys()
-  ssh.connect(hostname=hostname, port=port, username=username, password=password)
-  print "connexion to MRPiZ is open."
+  ssh.connect(hostname=ip_adr, port=port, username=username, password=password)
+  print "connexion to MRPiZ is open : ", ip_adr
 
 def connexionToMRPiZClose():  
   ssh.close()

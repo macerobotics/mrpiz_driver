@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
 # MRPiZ ROS driver
-# Version : 0.1
-# Date : 02/03/2018
+# Version : 0.2
+# Date : 21/03/2018
 
 import rospy
 import paramiko
@@ -15,15 +15,19 @@ from geometry_msgs.msg import Point, Quaternion
 from nav_msgs.msg import Odometry
 from visualization_msgs.msg import Marker
 from std_msgs.msg import String
+from sensor_msgs.msg import LaserScan
 import math
 import tf
 import time
 from mrpizSshDriver import *
 
+laser_frequency = 40
+num_readings = 100
+
 
 class MRPiZDriver(object):
 
-  def __init__(self):
+  def __init__(self, ip_robot):
 
     self._name = "mrpiz_robot_0"
     self.Orientation_pos = 0
@@ -31,6 +35,8 @@ class MRPiZDriver(object):
     self.y_pos = 0
     self.deltaSteps = 1
     self.deltaOrientation = 1
+    self.ipRobot= ip_robot
+    
 
     self.distance_sensors_msg = []
     self.distance_sensors_pub = []
@@ -44,7 +50,7 @@ class MRPiZDriver(object):
   '''---------------------'''
   ''' connection to MRPiZ robot with SSH '''
   def connection_to_mrpiz(self):
-    connexionToMRPiZ()
+    connexionToMRPiZ(self.ipRobot)
     ssh_resetUc()
 
   '''-------Reception command velocite--------------'''
@@ -54,7 +60,7 @@ class MRPiZDriver(object):
     angle = data.angular.z
     self.send_cmd_to_mrpiz(x,angle) 
 
-  '''---------------------'''
+  '''-------Envoie command au robot MRPiZ --------------'''
   def send_cmd_to_mrpiz(self, x, angular):
     right = int((x + angular) * 1000)
     left = int((x - angular) * 1000)
@@ -171,6 +177,8 @@ class MRPiZDriver(object):
     self.start_Time = self.end_Time
     self.odometry_pub.publish(odometry_msg)
 
+     ###################################### Transform position robot ######################################
+
     position_robot = (odometry_msg.pose.pose.position.x, odometry_msg.pose.pose.position.y, odometry_msg.pose.pose.position.z)
     orientation_robot = (odometry_msg.pose.pose.orientation.x, odometry_msg.pose.pose.orientation.y, odometry_msg.pose.pose.orientation.z, odometry_msg.pose.pose.orientation.w)
 
@@ -181,8 +189,17 @@ class MRPiZDriver(object):
     self.transformBroad.sendTransform((0, 0, 0), tf.transformations.quaternion_from_euler(0, 0, 0), rospy.Time.now(), "/right_wheel", "/base_link")
     self.transformBroad.sendTransform((0, 0, 0), tf.transformations.quaternion_from_euler(0, 0, 0), rospy.Time.now(), "/left_wheel", "/base_link")
     self.transformBroad.sendTransform((0, 0, 0), tf.transformations.quaternion_from_euler(0, 0, 0), rospy.Time.now(), "/pi_board", "/base_link")
-
-
+    
+    ###################################### Laser scan ######################################
+    scan = LaserScan()
+    scan.header.stamp = rospy.Time.now()
+    scan.header.frame_id = 'laser_frame'
+    scan.angle_min = -1.57
+    scan.angle_max = 1.57
+    scan.angle_increment = 3.14/20
+    #scan.time_increment = (1.0 / laser_frequency) / (num_readings)
+    scan.range_min = 0.0
+    scan.range_max = 0.02 # 20 cm
 
 
   '''-------- close connection to MRPiZ robot --------'''
@@ -190,7 +207,7 @@ class MRPiZDriver(object):
     connexionToMRPiZClose()
 
 
-  '''---------------------'''
+  '''------------RUN---------'''
   def run(self):
 
     # # Disconnect when rospy is close
@@ -211,6 +228,9 @@ class MRPiZDriver(object):
 
     # odometry publisher 
     self.odometry_pub = rospy.Publisher('odom', Odometry)
+
+    # laser scan publisher 
+    self.laserScan_pub = rospy.Publisher('scan', LaserScan)
 
     self.connection_to_mrpiz()
 
@@ -235,7 +255,7 @@ class MRPiZDriver(object):
 '''--------------------------------------------------------------------------------------------------------'''
 def run():
   rospy.init_node("mrpiz_drive", anonymous=True)
-  MRPiZDriver().run()
+  MRPiZDriver("192.168.42.2").run()
 
 if __name__ == "__main__":
   run()
